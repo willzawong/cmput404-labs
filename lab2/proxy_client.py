@@ -6,8 +6,8 @@ def create_tcp_socket():
     print('Creating socket')
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    except (socket.error, msg):
-        print(f'Failed to create socket. Error code: {str(msg[0])} , Error message : {msg[1]}')
+    except Exception as e:
+        print(f'Failed to create socket. Error: {e}')
         sys.exit()
     print('Socket created successfully')
     return s
@@ -40,15 +40,11 @@ def main():
         host = '127.0.0.1'
         port = 8001
         payload = f'GET / HTTP/1.0\r\nHost: {host}\r\n\r\n'
-        buffer_size = 4096
+        buffer_size = 1024
 
         #make the socket, get the ip, and connect
         s = create_tcp_socket()
-
-        remote_ip = get_remote_ip(host)
-
-        s.connect((remote_ip , port))
-        print (f'Socket Connected to {host} on ip {remote_ip}')
+        s.connect((host,port))
         
         #send the data and shutdown
         send_data(s, payload)
@@ -57,7 +53,7 @@ def main():
         #continue accepting data until no more left
         full_data = b""
         while True:
-            data = s.recv(buffer_size)
+            data = s.recv(buffer_size)  
             if not data:
                  break
             full_data += data

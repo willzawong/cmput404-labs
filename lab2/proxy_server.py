@@ -38,22 +38,18 @@ def send_data(serversocket, payload):
     print("Payload sent successfully")
 
 #define address & buffer size
-HOST = ""
-PORT = 8001
+HOST = "www.google.com"
+PORT = 80
 BUFFER_SIZE = 1024
 
 def main():
-    proxy_host = "127.0.0.1"
-    proxy_port = "8001"
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    
         #QUESTION 3
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
         #bind socket to address
-        s.bind((HOST, PORT))
+        s.bind(("", 8001))
         #set to listening mode
-        s.listen(2)
+        s.listen(1)
         
         #continuously listen for connections
         while True:
@@ -62,28 +58,32 @@ def main():
 
             # new socket
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as proxy_s:
-                p = Process(target=proxy_handler,args=(conn,proxy_s))
+                print("connecting to google")
+                remote_ip = get_remote_ip(HOST)
+                proxy_s.connect((remote_ip,PORT))
+
+                # multiprocessesing
+                p = Process(target=proxy_handler, args={proxy_s,conn})
                 p.daemon=True
                 p.start()
+                print("Starting new process", p)
+
+            conn.close
 
                 
-            while True:
-                data = s.recv(BUFFER_SIZE)
-                if not data:
-                    break
-                response_data += data
 
-                conn.sendall(response_data)
                 
             conn.close()
 
-def proxy_handler(conn,proxy_s):
+def proxy_handler(proxy_s,conn):
     #recieve data, wait a bit, then send it back
     full_data = conn.recv(BUFFER_SIZE)
-    time.sleep(0.5)
-    conn.sendall(full_data)
-    time.sleep(0.5)
+    print(f"Sending data {full_data} to Google...")
+    proxy_s.sendall(full_data)
     proxy_s.shutdown(socket.SHUT_WR)
+    data=proxy_s.recv(BUFFER_SIZE)
+    print(f"Sending {data} to client...")
+    conn.send(data)
 
 if __name__ == "__main__":
     main()
